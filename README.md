@@ -1,6 +1,6 @@
 # 🎓 EduPlanner AI
 > Local Student Assistant & Dynamic Quiz Generator  
-> **Stack:** Python 3.10+ · Streamlit · Google Gemini 1.5 Flash · SQLite3
+> **Stack:** Python 3.10+ · Streamlit · Google Gemini 2.5 Flash · SQLite3
 
 ---
 
