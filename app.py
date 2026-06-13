@@ -36,10 +36,10 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 # GLOBAL CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
-DB_PATH         = "eduplanner.db"   # SQLite database file (local)
+DB_PATH         = "eduplanner.db"   
 GEMINI_MODEL    = "gemini-2.5-flash"
-MAX_INPUT_CHARS = 8_000             # Truncate pasted text before sending to AI
-MAX_QUESTIONS   = 5                 # Number of MCQs to generate per quiz
+MAX_INPUT_CHARS = 8_000             
+MAX_QUESTIONS   = 5                 
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -109,14 +109,14 @@ def db_clear_history() -> None:
         conn.execute("DELETE FROM quiz_history")
         conn.commit()
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # ── SECTION 2 ──────────────────────────────────────────────────────────────────
 # AI INTEGRATION LAYER
 # Prompts → API call → parse/validate JSON
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ── Prompt Engineering ─────────────────────────────────────────────────────────
+
+
 
 PLANNER_PROMPT = """\
 You are an expert educational content analyst and study coach.
@@ -226,7 +226,7 @@ def _call_gemini(prompt: str, api_key: str) -> Optional[str]:
     model = genai.GenerativeModel(
         model_name=GEMINI_MODEL,
         generation_config=genai.types.GenerationConfig(
-            temperature=0.65,   # Balanced creativity vs. precision
+            temperature=0.65,   
             max_output_tokens=4096,
         ),
     )
@@ -259,7 +259,7 @@ def _extract_json_array(raw: str) -> Optional[list]:
     Strategy 2 – Regex extraction: finds the first '[…]' block in dirty output.
     Strategy 3 – Fence stripping:  removes ```json … ``` wrapper then retries.
     """
-    # Strategy 1: direct
+    
     try:
         parsed = json.loads(raw)
         if isinstance(parsed, list):
@@ -267,7 +267,7 @@ def _extract_json_array(raw: str) -> Optional[list]:
     except json.JSONDecodeError:
         pass
 
-    # Strategy 2: regex – grab the outermost [...] block
+    
     match = re.search(r'\[[\s\S]*\]', raw)
     if match:
         try:
@@ -277,7 +277,7 @@ def _extract_json_array(raw: str) -> Optional[list]:
         except json.JSONDecodeError:
             pass
 
-    # Strategy 3: strip markdown code fences then retry
+    
     cleaned = re.sub(r'```(?:json)?\s*', '', raw).strip().rstrip('`').strip()
     try:
         parsed = json.loads(cleaned)
@@ -286,7 +286,7 @@ def _extract_json_array(raw: str) -> Optional[list]:
     except json.JSONDecodeError:
         pass
 
-    return None  # All strategies exhausted
+    return None  
 
 
 def ai_quiz(text: str, api_key: str) -> Optional[list]:
@@ -315,7 +315,7 @@ def ai_quiz(text: str, api_key: str) -> Optional[list]:
         quiz_list = _extract_json_array(raw)
 
         if quiz_list is None:
-            # Show the raw output in an expander so the developer can debug
+            
             with st.expander("🔍 Raw AI output (debug)"):
                 st.code(raw[:600], language="text")
             st.error(
@@ -324,9 +324,9 @@ def ai_quiz(text: str, api_key: str) -> Optional[list]:
             )
             return None
 
-        # ── Schema Validation ──────────────────────────────────────────────────
-        # Drop any question that is missing keys or has an answer not in options,
-        # and warn the user rather than crashing.
+        
+        
+        
         valid: list[dict] = []
         required_keys = {"question", "options", "answer", "explanation"}
 
@@ -358,23 +358,23 @@ def ai_quiz(text: str, api_key: str) -> Optional[list]:
         st.error(f"❌ **Quiz generation error:** {exc}")
         return None
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # ── SECTION 3 ──────────────────────────────────────────────────────────────────
 # SESSION STATE MANAGEMENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Keys used by the app and their initial values.
+
+
 _STATE_DEFAULTS: dict = {
-    "study_text":       "",     # Raw pasted study material
-    "quiz_topic":       "",     # Topic label (for DB + display)
-    "generated_plan":   None,   # Markdown string returned by AI planner
-    "quiz_data":        None,   # List[dict] of validated MCQ questions
-    "quiz_submitted":   False,  # True once the user clicks "Submit Quiz"
-    "current_score":    0,      # Correct answers count (post-submission)
-    "quiz_saved":       False,  # Guard flag – prevent duplicate DB writes
-    "sidebar_api_key":  "",     # API key entered in the sidebar text_input
-    # q_0 … q_N radio-button state is managed automatically by Streamlit
+    "study_text":       "",     
+    "quiz_topic":       "",     
+    "generated_plan":   None,   
+    "quiz_data":        None,   
+    "quiz_submitted":   False,  
+    "current_score":    0,      
+    "quiz_saved":       False,  
+    "sidebar_api_key":  "",     
+    
 }
 
 
@@ -395,7 +395,7 @@ def _reset_quiz() -> None:
     st.session_state["quiz_submitted"] = False
     st.session_state["current_score"]  = 0
     st.session_state["quiz_saved"]     = False
-    # Remove Streamlit-managed radio keys (allow a generous ceiling)
+    
     for i in range(MAX_QUESTIONS + 5):
         st.session_state.pop(f"q_{i}", None)
 
@@ -428,7 +428,7 @@ def render_sidebar() -> None:
             st.text_input(
                 "Google Gemini API Key",
                 type="password",
-                key="sidebar_api_key",       # auto-saved to session_state
+                key="sidebar_api_key",       
                 placeholder="AIzaSy...",
                 help="Free key at: https://aistudio.google.com/app/apikey",
             )
@@ -446,7 +446,7 @@ def render_sidebar() -> None:
         if not history:
             st.info("No quiz history yet.\nComplete a quiz to track your progress!")
         else:
-            # Aggregate statistics row
+            
             total_quizzes   = len(history)
             total_correct   = sum(r[3] for r in history)
             total_questions = sum(r[4] for r in history)
@@ -457,11 +457,11 @@ def render_sidebar() -> None:
             c2.metric("Correct",  total_correct)
             c3.metric("Avg %",    f"{avg_pct:.0f}%")
 
-            # Per-quiz history list (newest first, capped at 10)
+            
             st.caption("**Recent sessions:**")
             for _, ts, topic, score, total in history[:10]:
                 pct   = (score / total * 100) if total else 0
-                # Colour-coded dot: green ≥80 %, yellow ≥50 %, red <50 %
+                
                 dot   = "🟢" if pct >= 80 else "🟡" if pct >= 50 else "🔴"
                 label = (topic[:22] + "…") if len(topic) > 24 else topic
                 st.markdown(
@@ -472,7 +472,7 @@ def render_sidebar() -> None:
 
             st.divider()
 
-            # Allow the user to wipe history
+            
             if st.button("🗑️ Clear All History", use_container_width=True):
                 db_clear_history()
                 st.rerun()
@@ -510,13 +510,13 @@ def render_planner_tab() -> None:
     if input_method == "✍️ Paste Text":
         study_text = st.text_area(
             "Paste your study material here:",
-            value=st.session_state.get("study_text", ""),  # Load existing if any
+            value=st.session_state.get("study_text", ""),  
             height=270,
             placeholder="Example: Photosynthesis is the biological process...",
             key="text_area_input"
         )
 
-    else:  # Upload PDF logic
+    else:  
         uploaded_file = st.file_uploader("Upload a PDF document", type="pdf")
 
         if uploaded_file is not None:
@@ -525,7 +525,7 @@ def render_planner_tab() -> None:
                     reader = PdfReader(uploaded_file)
                     extracted_text = ""
 
-                    # Limit to first 15 pages to save tokens/speed
+                    
                     max_pages = min(len(reader.pages), 15)
 
                     for i in range(max_pages):
@@ -535,7 +535,7 @@ def render_planner_tab() -> None:
 
                     study_text = extracted_text
 
-                    # Show preview stats
+                    
                     st.success(f"✅ PDF Processed: {len(reader.pages)} pages found (analyzing first {max_pages}).")
                     with st.expander("👀 View Extracted Text"):
                         st.text(study_text[:1000] + "...")
@@ -543,7 +543,7 @@ def render_planner_tab() -> None:
             except Exception as e:
                 st.error(f"Error reading PDF: {e}")
 
-    # Update session state immediately so other tabs can see it
+    
     if study_text:
         st.session_state["study_text"] = study_text
 
@@ -578,15 +578,15 @@ def render_planner_tab() -> None:
             st.error("❌ No API key found. Please enter your Gemini key in the sidebar.")
             return
 
-        # Save Inputs & Reset Quiz
+        
         st.session_state["study_text"] = study_text.strip()
         st.session_state["quiz_topic"] = topic_name.strip() if topic_name.strip() else "Study Session"
 
-        # Reset quiz state because the content has changed
+        
         st.session_state["quiz_data"] = None
         st.session_state["generated_plan"] = None
 
-        # Call AI
+        
         with st.spinner("🤖 Analysing difficulty and crafting your study plan..."):
             plan = ai_study_plan(study_text.strip(), api_key)
             st.session_state["generated_plan"] = plan
@@ -603,8 +603,8 @@ def render_planner_tab() -> None:
             st.markdown("### 📋 Your Personalised Study Plan")
             st.markdown(plan)
 
-            # ── YANGI: DOWNLOAD BUTTON ──
-            # Fayl nomini mavzu (topic) ga qarab chiroyli qilamiz
+            
+            
             safe_topic = topic_name.strip().replace(" ", "_") or "Study_Plan"
             file_name = f"{safe_topic}_Plan.md"
 
@@ -653,32 +653,32 @@ def _render_single_question(idx: int, q: dict, submitted: bool) -> None:
     st.markdown(f"**Q{idx + 1}. {question_text}**")
 
     if not submitted:
-        # ── Interactive phase ─────────────────────────────────────────────────
-        # index=None → no option is pre-selected (Streamlit ≥1.17 feature).
-        # The key ensures the selection survives reruns (Streamlit auto-persists).
+        
+        
+        
         selected = st.radio(
-            label=f"_q{idx}_label",   # Hidden label (label_visibility="collapsed")
+            label=f"_q{idx}_label",   
             options=options,
             key=f"q_{idx}",
             index=None,
             label_visibility="collapsed",
         )
 
-        # Immediate feedback on selection
+        
         if selected is not None:
             if selected == correct:
                 st.success(f"✅ **Correct!** — {explanation}")
             else:
-                # Do NOT reveal the correct answer yet; encourage the student
-                # to reconsider before submitting.
+                
+                
                 st.error(
                     "❌ **Not quite.** You can change your answer before submitting. "
                     "*(Full explanation revealed after you submit.)*"
                 )
 
     else:
-        # ── Review phase (post-submission) ────────────────────────────────────
-        user_choice = st.session_state.get(f"q_{idx}")   # May be None if skipped
+        
+        user_choice = st.session_state.get(f"q_{idx}")   
 
         for opt in options:
             is_correct  = (opt == correct)
@@ -715,7 +715,7 @@ def render_quiz_tab() -> None:
     """
     st.markdown("## 🧠 Knowledge Quiz")
 
-    # ── Gate: require study text ───────────────────────────────────────────────
+    
     if not st.session_state.get("study_text"):
         st.info(
             "👈 Go to the **📖 Study Planner** tab, paste your study material, "
@@ -765,8 +765,8 @@ def render_quiz_tab() -> None:
                 st.session_state["current_score"]  = 0
                 st.session_state["quiz_saved"]     = False
                 st.rerun()
-            # If ai_quiz() returned None it already called st.error() internally.
-        return  # Nothing more to render until quiz_data exists
+            
+        return  
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Phase B: Quiz ready — render questions
@@ -775,7 +775,7 @@ def render_quiz_tab() -> None:
     submitted  = st.session_state.get("quiz_submitted", False)
     n_q        = len(quiz_data)
 
-    # "New Quiz" shortcut (always available while answering)
+    
     if not submitted:
         col_prog, col_new = st.columns([5, 1])
         with col_new:
@@ -783,7 +783,7 @@ def render_quiz_tab() -> None:
                 _reset_quiz()
                 st.rerun()
 
-        # Progress bar — how many questions answered so far
+        
         answered = sum(
             1 for i in range(n_q)
             if st.session_state.get(f"q_{i}") is not None
@@ -795,7 +795,7 @@ def render_quiz_tab() -> None:
             )
         st.markdown("")
 
-    # Render every question
+    
     for i, q in enumerate(quiz_data):
         _render_single_question(i, q, submitted)
 
@@ -814,7 +814,7 @@ def render_quiz_tab() -> None:
             )
 
         if st.button("📊 Submit Quiz & See Results", type="primary", use_container_width=True):
-            # Count correct answers by reading each radio-key from session_state
+            
             final_score = sum(
                 1 for i, q in enumerate(quiz_data)
                 if st.session_state.get(f"q_{i}") == q.get("answer")
@@ -822,7 +822,7 @@ def render_quiz_tab() -> None:
             st.session_state["current_score"]  = final_score
             st.session_state["quiz_submitted"] = True
 
-            # Persist to SQLite exactly once (guard against double-saves on rerun)
+            
             if not st.session_state.get("quiz_saved"):
                 db_save_result(topic, final_score, n_q)
                 st.session_state["quiz_saved"] = True
@@ -836,26 +836,26 @@ def render_quiz_tab() -> None:
         score = st.session_state.get("current_score", 0)
         pct   = (score / n_q * 100) if n_q else 0
 
-        # Dynamic badge + message based on percentage
+        
         if pct >= 80:
             st.balloons()
             badge  = "🏆"
             msg    = "Outstanding! You've truly mastered this material."
-            accent = "#22c55e"    # green-500
+            accent = "#22c55e"    
         elif pct >= 60:
             badge  = "🌟"
             msg    = "Great work! A little more review and you'll ace it."
-            accent = "#3b82f6"    # blue-500
+            accent = "#3b82f6"    
         elif pct >= 40:
             badge  = "📚"
             msg    = "Decent effort. Re-read the material and try again."
-            accent = "#f97316"    # orange-500
+            accent = "#f97316"    
         else:
             badge  = "💪"
             msg    = "Keep going — every attempt makes you stronger!"
-            accent = "#ef4444"    # red-500
+            accent = "#ef4444"    
 
-        # Score card (one controlled use of HTML for the gradient card)
+        
         st.markdown(
             f"""
             <div style="
@@ -896,7 +896,7 @@ def render_quiz_tab() -> None:
                 st.rerun()
         with col_b:
             if st.button("📖 New Study Material", type="secondary", use_container_width=True):
-                # Clear everything so the user can start fresh from Tab 1
+                
                 st.session_state["study_text"]     = ""
                 st.session_state["generated_plan"] = None
                 _reset_quiz()
@@ -962,11 +962,11 @@ def main() -> None:
         4. render_sidebar()     – API key + progress tracker
         5. Tab layout           – Study Planner | Knowledge Quiz
     """
-    # ── Infrastructure ─────────────────────────────────────────────────────────
+    
     init_db()
     init_session_state()
 
-    # Warn early if google-generativeai is missing — user can still explore the UI
+    
     if not GENAI_AVAILABLE:
         st.warning(
             "⚠️ `google-generativeai` package is not installed.  \n"
@@ -974,13 +974,13 @@ def main() -> None:
             icon="⚠️",
         )
 
-    # ── Visual polish ──────────────────────────────────────────────────────────
+    
     inject_css()
 
-    # ── Sidebar (always visible) ───────────────────────────────────────────────
+    
     render_sidebar()
 
-    # ── Main content: two tabs ─────────────────────────────────────────────────
+    
     tab_plan, tab_quiz = st.tabs(["📖 Study Planner", "🧠 Knowledge Quiz"])
 
     with tab_plan:
@@ -990,6 +990,6 @@ def main() -> None:
         render_quiz_tab()
 
 
-# ── Guard: ensure main() runs only when executed directly ──────────────────────
+
 if __name__ == "__main__":
     main()
